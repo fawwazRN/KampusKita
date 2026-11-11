@@ -1,0 +1,28 @@
+# Dependensi
+node_modules/
+
+# Hasil build & cache
+dist/
+dist-ssr/
+.vite/
+.testdist/
+*.local
+
+# Log
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Environment (jangan commit rahasia)
+.env
+.env.*
+!.env.example
+
+# Editor & OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.swp
