@@ -14,8 +14,8 @@ export default function Gate({ onOpen, onDone }) {
     const t1 = window.setTimeout(() => {
       setPhase("open");
       opened();
-    }, 1500);
-    const t2 = window.setTimeout(() => done(), 1500 + 1250);
+    }, 650);
+    const t2 = window.setTimeout(() => done(), 650 + 950);
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
@@ -36,7 +36,7 @@ export default function Gate({ onOpen, onDone }) {
           بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
         </p>
         <div className="gate__logo">
-          <Logo tone="light" variant="mark" height={64} />
+          <Logo tone="light" height={64} />
         </div>
         <p className="gate__line">Kuliah Islam Terbuka</p>
         <span className="gate__bar" aria-hidden="true" />

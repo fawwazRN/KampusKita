@@ -13,6 +13,7 @@ import Dosen from "./components/Dosen";
 import Akademik from "./components/Akademik";
 import FAQ from "./components/FAQ";
 import Fajar from "./components/Fajar";
+import Kartu from "./components/Kartu";
 import Footer from "./components/Footer";
 import RegistrationModal from "./components/RegistrationModal";
 import CurriculumModal from "./components/CurriculumModal";
@@ -36,6 +37,7 @@ export default function App() {
   const [gate, setGate] = useState(() => (skipGate() ? "done" : "closed"));
   const [registrationOpen, setRegistrationOpen] = useState(false);
   const [registrationProgram, setRegistrationProgram] = useState("pai");
+  const [registrationName, setRegistrationName] = useState("");
   const [curriculumProgram, setCurriculumProgram] = useState(null);
   const [videoOpen, setVideoOpen] = useState(false);
 
@@ -43,13 +45,14 @@ export default function App() {
   const ids = useMemo(() => chapterIds, []);
   const active = useActiveSection(ids);
 
-  const openRegistration = useCallback((programId = "pai") => {
+  const openRegistration = useCallback((programId = "pai", name = "") => {
     if (site.registration.externalUrl) {
       window.open(site.registration.externalUrl, "_blank", "noopener,noreferrer");
       return;
     }
     setCurriculumProgram(null);
     setRegistrationProgram(programId);
+    setRegistrationName(typeof name === "string" ? name : "");
     setRegistrationOpen(true);
   }, []);
 
@@ -105,10 +108,11 @@ export default function App() {
         <Akademik onRegister={() => openRegistration("pai")} />
         <FAQ />
         <Fajar onRegister={() => openRegistration("pai")} />
+        <Kartu onRegister={openRegistration} />
       </main>
       <Footer />
 
-      <RegistrationModal open={registrationOpen} onClose={() => setRegistrationOpen(false)} initialProgram={registrationProgram} />
+      <RegistrationModal open={registrationOpen} onClose={() => setRegistrationOpen(false)} initialProgram={registrationProgram} initialName={registrationName} />
       <CurriculumModal program={curriculumProgram} onClose={() => setCurriculumProgram(null)} onRegister={(id) => { setCurriculumProgram(null); openRegistration(id); }} />
       <VideoModal open={videoOpen} onClose={() => setVideoOpen(false)} />
       <WhatsAppFloat />

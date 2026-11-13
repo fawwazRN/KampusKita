@@ -57,6 +57,7 @@
 }
 
 html {
+  overflow-x: clip;
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
@@ -303,7 +304,6 @@ footer[id] {
   --bg: rgba(255, 255, 255, 0.06);
   --fg: var(--white);
   --bd: rgba(255, 255, 255, 0.28);
-  backdrop-filter: blur(8px);
 }
 .btn--ghost-l {
   --bg: transparent;

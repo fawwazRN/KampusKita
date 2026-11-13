@@ -27,7 +27,7 @@ const initialForm = {
   domicile: "",
 };
 
-export default function RegistrationModal({ open, onClose, initialProgram = "pai" }) {
+export default function RegistrationModal({ open, onClose, initialProgram = "pai", initialName = "" }) {
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
   const [submitted, setSubmitted] = useState(false);
@@ -38,10 +38,11 @@ export default function RegistrationModal({ open, onClose, initialProgram = "pai
     setForm((current) => ({
       ...current,
       program: programById(initialProgram).id,
+      name: initialName || current.name,
     }));
     setSubmitted(false);
     setErrors({});
-  }, [open, initialProgram]);
+  }, [open, initialProgram, initialName]);
 
   const update = (key) => (event) => {
     setForm((current) => ({ ...current, [key]: event.target.value }));

@@ -1,17 +1,34 @@
+import { useRef, useState } from "react";
 import { ArrowRight, Download, MessageCircle } from "lucide-react";
 import Words from "./Words";
 import Reveal from "./Reveal";
 import flyer from "../assets/flyer.webp";
-import { useCountUp, useInView } from "../lib/hooks";
+import { clamp01, useScrollPhases } from "../lib/hooks";
 import { site, whatsappUrl } from "../data/site";
 import { track } from "../lib/track";
 
-const rp = (n) => "Rp" + n.toLocaleString("id-ID");
+const rp = (n) => "Rp" + Math.round(n).toLocaleString("id-ID");
+const REG = 550000;
+const UKT = 1950000;
 
 export default function Biaya({ onRegister }) {
-  const [ref, seen] = useInView({ threshold: 0.3 });
-  const a = useCountUp(550000, { run: seen, duration: 1600 });
-  const c = useCountUp(1950000, { run: seen, duration: 2000 });
+  const desk = useRef(null);
+  const [sem, setSem] = useState(4);
+
+  /* struk tercetak & angka naik MENGIKUTI scroll */
+  useScrollPhases(desk, {
+    mode: "pass",
+    phases: { print: [0.22, 0.52], stamp: [0.5, 0.58] },
+    onProgress: (p, el) => {
+      const t = clamp01((p - 0.22) / 0.3);
+      const e = 1 - Math.pow(1 - t, 3);
+      const a = el.querySelector("[data-c1]");
+      const c = el.querySelector("[data-c3]");
+      if (a) a.textContent = rp(REG * e);
+      if (c) c.textContent = rp(UKT * e);
+    },
+  });
+
   return (
     <section id="biaya" className="biaya" data-tone="dark">
       <div className="wrap biaya__grid">
@@ -19,6 +36,15 @@ export default function Biaya({ onRegister }) {
           <Reveal><p className="eyebrow">05 · Transparan</p></Reveal>
           <Words text={"Biaya jelas,\n*tanpa* kejutan."} className="h-section" />
           <Reveal delay={150}><p className="lead">Rincian yang sama untuk PAI dan PGMI. UKT sudah mencakup ujian semester — semuanya tercetak di struk, tidak ada yang disembunyikan.</p></Reveal>
+
+          <Reveal delay={200} className="sim">
+            <p className="sim__l">Simulasi cepat</p>
+            <label htmlFor="sim-range" className="sim__q">Kalau Anda kuliah sampai <b className="num">semester {sem}</b>…</label>
+            <input id="sim-range" type="range" min="1" max="8" value={sem} onChange={(e) => setSem(Number(e.target.value))} style={{ "--v": ((sem - 1) / 7) * 100 + "%" }} />
+            <div className="sim__out"><span>Total UKT + pendaftaran</span><b className="num">{rp(REG + UKT * sem)}</b></div>
+            <small>Hitungan sederhana dari angka di struk (Rp550.000 sekali + Rp1.950.000 × semester). Ketentuan resmi mengikuti kampus.</small>
+          </Reveal>
+
           <Reveal delay={250} className="bank">
             <p className="bank__l">Rekening resmi</p>
             <p className="bank__n num">{site.bank.name} {site.bank.account}</p>
@@ -31,19 +57,20 @@ export default function Biaya({ onRegister }) {
           </Reveal>
         </div>
 
-        <div className="desk" ref={ref}>
+        <div className="desk" ref={desk}>
           <a className="flyer" href="/flyer-pendaftaran-kuliah-islam-abu-dzar-genap-2026-2027.pdf" target="_blank" rel="noreferrer" onClick={() => track("brochure_view", { source: "biaya_preview" })} aria-label="Buka brosur pendaftaran (PDF)">
-            <img src={flyer} alt="Flyer pendaftaran Kuliah Islam Abu Dzar semester genap 2026/2027" width="900" height="1125" loading="lazy" decoding="async" />
+            <img src={flyer} alt="Flyer pendaftaran Kuliah Islam Abu Dzar semester genap 2026/2027" width="800" height="1000" loading="lazy" decoding="async" />
             <span className="flyer__dl"><Download size={14} /> Brosur PDF</span>
           </a>
-          <div className={`receipt${seen ? " is-in" : ""}`}>
+          <div className="receipt">
+            <div className="receipt__slot" aria-hidden="true" />
             <div className="receipt__in">
               <p className="receipt__brand">KITA · Kuliah Islam Abu Dzar</p>
               <p className="receipt__sub">STRUK BIAYA — GENAP 2026/2027</p>
-              <div className="rline" style={{ "--r": 0 }}><div><b>Pendaftaran</b><small>Sekali bayar saat mendaftar</small></div><span className="num">{rp(a)}</span></div>
-              <div className="rline" style={{ "--r": 1 }}><div><b>Uang masuk</b><small>Tidak ada uang pangkal</small></div><span className="num rline__free">Rp0</span><em className="stamp">GRATIS</em></div>
-              <div className="rline" style={{ "--r": 2 }}><div><b>UKT per semester</b><small>Sudah termasuk ujian semester</small></div><span className="num">{rp(c)}</span></div>
-              <div className="rsum" style={{ "--r": 3 }}><span>Berlaku sama untuk</span><b>PAI &amp; PGMI</b></div>
+              <div className="rline"><div><b>Pendaftaran</b><small>Sekali bayar saat mendaftar</small></div><span className="num" data-c1>Rp0</span></div>
+              <div className="rline"><div><b>Uang masuk</b><small>Tidak ada uang pangkal</small></div><span className="num rline__free">Rp0</span><em className="stamp">GRATIS</em></div>
+              <div className="rline"><div><b>UKT per semester</b><small>Sudah termasuk ujian semester</small></div><span className="num" data-c3>Rp0</span></div>
+              <div className="rsum"><span>Berlaku sama untuk</span><b>PAI &amp; PGMI</b></div>
               <div className="barcode" aria-hidden="true">{Array.from({ length: 42 }, (_, i) => <i key={i} style={{ width: `${1 + ((i * 7) % 4)}px` }} />)}</div>
             </div>
           </div>

@@ -3,10 +3,12 @@ import Words from "./Words";
 import Reveal from "./Reveal";
 import { academicCalendar } from "../data/academic";
 import { track } from "../lib/track";
-import { useInView } from "../lib/hooks";
+import { useRef } from "react";
+import { useScrollPhases } from "../lib/hooks";
 
 export default function Akademik({ onRegister }) {
-  const [ref, seen] = useInView({ threshold: 0.25 });
+  const ref = useRef(null);
+  useScrollPhases(ref, { mode: "pass", phases: { trk: [0.3, 0.6] } });
   return (
     <section id="akademik" className="akad" data-tone="light">
       <div className="wrap">
@@ -15,7 +17,7 @@ export default function Akademik({ onRegister }) {
           <Words text={"Lintasan semester,\n*Anda* di titik awal."} className="h-section" />
           <Reveal delay={150}><p className="lead">Tanggal PBAK, awal kuliah, UTS, UAS, dan libur akan diumumkan setelah kalender akademik kampus ditetapkan.</p></Reveal>
         </header>
-        <ol ref={ref} className={`track${seen ? " is-in" : ""}`}>
+        <ol ref={ref} className="track">
           {academicCalendar.map((it, i) => (
             <li key={it.label} className={`tnode${it.value ? " is-now" : ""}`} style={{ "--k": i }}>
               <span className="tnode__dot">{it.value ? <i /> : null}</span>

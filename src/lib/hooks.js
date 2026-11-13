@@ -44,73 +44,99 @@ export function useInView({ threshold = 0.2, rootMargin = "0px 0px -8% 0px", onc
   return [ref, seen];
 }
 
-/* ---------- progres scroll -> variabel CSS ----------
-   mode "pin"  : elemen tinggi (sticky stage di dalamnya). p = 0 saat atas elemen
-                 menyentuh atas layar, 1 saat bawah elemen menyentuh bawah layar.
-   mode "exit" : p = 0 saat atas elemen di atas layar, 1 saat elemen sudah keluar seluruhnya.
-   mode "pass" : p = 0 saat elemen mulai masuk dari bawah, 1 saat keluar di atas.
-   Nilai ditulis langsung ke style (tanpa re-render React).
-   phases: { nama: [mulai, selesai] } -> --nama bernilai 0..1.            */
-export function useScrollPhases(ref, { mode = "pin", phases = {}, onProgress, start = 0, end = 1 } = {}) {
-  const cfg = useRef({ phases, onProgress, mode, start, end });
-  cfg.current = { phases, onProgress, mode, start, end };
+/* ---------- penjadwal scroll bersama ----------
+   Satu listener + satu rAF untuk SEMUA elemen yang bergerak mengikuti scroll.
+   Baca layout dulu (batch), baru tulis style -> tidak ada layout thrashing.
+   Elemen yang jauh di luar layar dilewati setelah nilai ujungnya tertulis.   */
+const scrubItems = new Set();
+let scrubRaf = 0;
+let scrubBound = false;
 
+function scrubLoop() {
+  scrubRaf = 0;
+  const vh = window.innerHeight;
+  const batch = [];
+  scrubItems.forEach((it) => {
+    const r = it.el.getBoundingClientRect();
+    const zone = r.bottom < -vh * 0.7 ? -1 : r.top > vh * 1.7 ? 1 : 0;
+    if (zone !== 0 && it.zone === zone) return;
+    it.zone = zone;
+    batch.push([it, r]);
+  });
+  for (let i = 0; i < batch.length; i++) batch[i][0].fn(batch[i][1], vh);
+}
+export function scheduleScrub() {
+  if (!scrubRaf) scrubRaf = requestAnimationFrame(scrubLoop);
+}
+function bindScrub() {
+  if (scrubBound) return;
+  scrubBound = true;
+  window.addEventListener("scroll", scheduleScrub, { passive: true });
+  window.addEventListener("resize", () => {
+    scrubItems.forEach((it) => (it.zone = 9));
+    scheduleScrub();
+  });
+}
+
+/* fn(rect, vh) dipanggil setiap frame scroll selama elemen dekat layar */
+export function useScrub(ref, fn) {
+  const cb = useRef(fn);
+  cb.current = fn;
   useEffect(() => {
     const el = ref.current;
     if (!el) return undefined;
-    let raf = 0;
-
-    const write = (p) => {
-      const { phases: ph, onProgress: cb } = cfg.current;
-      el.style.setProperty("--p", p.toFixed(4));
-      for (const key in ph) {
-        const [a, b] = ph[key];
-        const t = Math.min(1, Math.max(0, (p - a) / (b - a || 1)));
-        el.style.setProperty(`--${key}`, t.toFixed(4));
-      }
-      cb?.(p);
-    };
-
-    const measure = () => {
-      raf = 0;
-      if (prefersReducedMotion()) {
-        write(1);
-        return;
-      }
-      const r = el.getBoundingClientRect();
-      const vh = window.innerHeight;
-      if (r.bottom < -vh * 0.5 || r.top > vh * 1.5) {
-        // jauh dari layar: pastikan nilai ujung benar tanpa kerja berlebih
-        write(r.top > 0 ? 0 : 1);
-        return;
-      }
-      let p;
-      if (cfg.current.mode === "pin") {
-        const span = Math.max(1, r.height - vh);
-        p = -r.top / span;
-      } else if (cfg.current.mode === "exit") {
-        p = -r.top / Math.max(1, r.height);
-      } else {
-        const { start: s, end: e } = cfg.current;
-        const raw = (vh - r.top) / (vh + r.height);
-        p = (raw - s) / (e - s || 1);
-      }
-      write(Math.min(1, Math.max(0, p)));
-    };
-
-    const schedule = () => {
-      if (!raf) raf = requestAnimationFrame(measure);
-    };
-
-    measure();
-    window.addEventListener("scroll", schedule, { passive: true });
-    window.addEventListener("resize", schedule);
-    return () => {
-      window.removeEventListener("scroll", schedule);
-      window.removeEventListener("resize", schedule);
-      if (raf) cancelAnimationFrame(raf);
-    };
+    const item = { el, zone: 9, fn: (r, vh) => cb.current(r, vh, el) };
+    scrubItems.add(item);
+    bindScrub();
+    scheduleScrub();
+    return () => scrubItems.delete(item);
   }, [ref]);
+}
+
+const clamp01 = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+export { clamp01 };
+
+/* progres elemen -> variabel CSS.
+   mode "pin"  : elemen tinggi dengan stage sticky di dalamnya (0..1 selama di-pin)
+   mode "exit" : 0 saat atas elemen di atas layar, 1 saat elemen sudah keluar
+   mode "enter": 0 saat atas elemen menyentuh bawah layar, 1 saat seluruh elemen sudah terlihat (cocok untuk footer).
+   mode "pass" : 0 saat elemen mulai masuk dari bawah, 1 saat keluar di atas (dapat dipotong start/end)
+   phases: { nama: [mulai, selesai] } -> --nama bernilai 0..1                       */
+export function useScrollPhases(ref, { mode = "pin", phases = {}, onProgress, start = 0, end = 1 } = {}) {
+  const cfg = useRef({});
+  cfg.current = { phases, onProgress, mode, start, end };
+
+  useScrub(ref, (r, vh, el) => {
+    const { phases: ph, onProgress: cb, mode: m, start: s0, end: e0 } = cfg.current;
+    let p = 1;
+    if (!prefersReducedMotion()) {
+      if (m === "pin") p = -r.top / Math.max(1, r.height - vh);
+      else if (m === "exit") p = -r.top / Math.max(1, r.height);
+      else if (m === "enter") p = (vh - r.top) / Math.max(1, r.height);
+      else p = ((vh - r.top) / (vh + r.height) - s0) / (e0 - s0 || 1);
+      p = clamp01(p);
+    }
+    el.style.setProperty("--p", p.toFixed(4));
+    for (const key in ph) {
+      const [a, b] = ph[key];
+      el.style.setProperty(`--${key}`, clamp01((p - a) / (b - a || 1)).toFixed(4));
+    }
+    cb?.(p, el);
+  });
+}
+
+/* kemunculan mengikuti scroll: --t 0..1 saat elemen naik dari 94% ke 58% tinggi layar */
+export function useReveal(ref, shift = 0) {
+  const last = useRef(-1);
+  useScrub(ref, (r, vh, el) => {
+    let t = 1;
+    if (!prefersReducedMotion()) t = clamp01((vh * (0.95 - shift) - r.top) / (vh * 0.34));
+    t = Math.round(t * 200) / 200;
+    if (t !== last.current) {
+      last.current = t;
+      el.style.setProperty("--t", t);
+    }
+  });
 }
 
 /* ---------- angka naik ---------- */

@@ -1,11 +1,10 @@
 const ticks = Array.from({ length: 60 }, (_, i) => i);
 
-/* Jam analog. minutes = menit sejak 00:00 (boleh pecahan). */
-export default function Clock({ minutes, ticking = false, className = "" }) {
-  const m = ((minutes % 60) + 60) % 60;
-  const h = (minutes / 60) % 12;
+/* Jam analog statis. Jarum digerakkan oleh variabel CSS --h dan --m (derajat)
+   yang ditulis elemen induk saat scroll -> tidak ada render ulang React. */
+export default function Clock({ ticking = false, className = "", label = "Jam dinding" }) {
   return (
-    <svg className={`clock ${className}`} viewBox="0 -70 520 600" role="img" aria-label="Jam dinding yang menunjukkan jam kerja" style={{ "--h": h * 30, "--m": m * 6 }}>
+    <svg className={`clock ${className}`} viewBox="0 -70 520 600" role="img" aria-label={label}>
       <defs>
         <linearGradient id="clk-body" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#1e5a9f" />
@@ -15,14 +14,14 @@ export default function Clock({ minutes, ticking = false, className = "" }) {
           <stop offset="0" stopColor="#fffdf8" />
           <stop offset="1" stopColor="#ece5d4" />
         </radialGradient>
-        <filter id="clk-shadow" x="-20%" y="-20%" width="140%" height="150%">
-          <feDropShadow dx="0" dy="26" stdDeviation="26" floodColor="#020b1a" floodOpacity="0.55" />
-        </filter>
+        <radialGradient id="clk-shade" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stopColor="#020b1a" stopOpacity="0.55" />
+          <stop offset="1" stopColor="#020b1a" stopOpacity="0" />
+        </radialGradient>
       </defs>
 
-      <g filter="url(#clk-shadow)">
-        <circle cx="260" cy="260" r="250" fill="url(#clk-body)" />
-      </g>
+      <ellipse cx="260" cy="515" rx="215" ry="30" fill="url(#clk-shade)" />
+      <circle cx="260" cy="260" r="250" fill="url(#clk-body)" />
       <circle cx="260" cy="260" r="242" fill="none" stroke="#f2c14e" strokeWidth="5" />
       <circle cx="260" cy="260" r="224" fill="url(#clk-face)" />
       <circle cx="260" cy="260" r="214" fill="none" stroke="#123c75" strokeOpacity="0.12" strokeWidth="1.5" />

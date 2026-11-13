@@ -35,6 +35,7 @@ export default function Daftar({ onRegister }) {
         </div>
         <ol className="path">
           <span className="path__line" aria-hidden="true"><span /></span>
+          <span className="path__cap" aria-hidden="true"><GraduationCap size={20} strokeWidth={2.4} /></span>
           {steps.map((s, i) => {
             const Icon = s.icon;
             return (

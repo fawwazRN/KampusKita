@@ -44,7 +44,7 @@ export default function Header({ onRegister, tone, active }) {
     <header className={`hdr hdr--${effectiveTone}${scrolled ? " is-scrolled" : ""}${hidden ? " is-hidden" : ""}${open ? " is-open" : ""}`}>
       <div className="wrap hdr__in">
         <a href="#beranda" className="hdr__logo" aria-label="Kuliah Islam Abu Dzar — ke beranda" onClick={() => setOpen(false)}>
-          <Logo tone={effectiveTone} variant="mark" height={38} />
+          <Logo tone={effectiveTone} height={38} />
           <span className="hdr__brand">
             <b>KITA</b>
             <small>Kuliah Islam Abu Dzar</small>

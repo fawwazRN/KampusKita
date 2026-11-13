@@ -1,16 +1,17 @@
 import { ArrowRight, BookOpen, CheckCircle2, School } from "lucide-react";
 import Words from "./Words";
 import Reveal from "./Reveal";
-import { useInView } from "../lib/hooks";
+import { useRef } from "react";
+import { useScrollPhases } from "../lib/hooks";
 import { programs } from "../data/programs";
 import { track } from "../lib/track";
 
 function EmblemPai() {
   return (
-    <svg viewBox="0 0 240 180" aria-hidden="true" className="emb">
+    <svg viewBox="0 0 240 180" aria-hidden="true" className="emb" preserveAspectRatio="xMidYMax meet">
       <defs><radialGradient id="e1" cx=".5" cy=".6" r=".6"><stop offset="0" stopColor="#f2c14e" stopOpacity=".55" /><stop offset="1" stopColor="#f2c14e" stopOpacity="0" /></radialGradient></defs>
       <circle cx="120" cy="96" r="84" fill="url(#e1)" />
-      {Array.from({ length: 9 }, (_, i) => <line key={i} x1="120" y1="96" x2={120 + Math.cos(Math.PI + (i * Math.PI) / 8) * 92} y2={96 + Math.sin(Math.PI + (i * Math.PI) / 8) * 92} stroke="#f2c14e" strokeOpacity=".5" strokeWidth="2" strokeLinecap="round" />)}
+      <g className="emb__rays">{Array.from({ length: 9 }, (_, i) => <line key={i} x1="120" y1="96" x2={120 + Math.cos(Math.PI + (i * Math.PI) / 8) * 92} y2={96 + Math.sin(Math.PI + (i * Math.PI) / 8) * 92} stroke="#f2c14e" strokeOpacity=".5" strokeWidth="2" strokeLinecap="round" />)}</g>
       <path d="M120 150 C96 134 56 132 30 140 V70 C58 62 98 64 120 84 Z" fill="#fff" />
       <path d="M120 150 C144 134 184 132 210 140 V70 C182 62 142 64 120 84 Z" fill="#e3eff9" />
       <path d="M120 84 V150" stroke="#123c75" strokeWidth="3" />
@@ -22,7 +23,7 @@ function EmblemPai() {
 }
 function EmblemPgmi() {
   return (
-    <svg viewBox="0 0 240 180" aria-hidden="true" className="emb">
+    <svg viewBox="0 0 240 180" aria-hidden="true" className="emb" preserveAspectRatio="xMidYMax meet">
       <circle cx="120" cy="100" r="82" fill="#f2c14e" fillOpacity=".16" />
       <rect x="40" y="108" width="160" height="50" rx="4" fill="#fff" />
       <path d="M92 108 V86 a28 28 0 0 1 56 0 V108 Z" fill="#e3eff9" />
@@ -36,7 +37,15 @@ function EmblemPgmi() {
 }
 
 export default function Prodi({ onRegister, onOpenCurriculum }) {
-  const [ref, seen] = useInView({ threshold: 0.12, rootMargin: "0px 0px -5% 0px" });
+  const ref = useRef(null);
+  useScrollPhases(ref, { mode: "pass", phases: { stem: [0.12, 0.26], bar: [0.24, 0.38], drop: [0.36, 0.46], card: [0.4, 0.62] } });
+  const tilt = (e) => {
+    const el = e.currentTarget, r = el.getBoundingClientRect();
+    el.style.setProperty("--ry", `${((e.clientX - r.left) / r.width - 0.5) * 7}deg`);
+    el.style.setProperty("--rx", `${(0.5 - (e.clientY - r.top) / r.height) * 5}deg`);
+    el.style.setProperty("--mx", `${((e.clientX - r.left) / r.width - 0.5) * 18}px`);
+  };
+  const untilt = (e) => { const el = e.currentTarget; el.style.setProperty("--ry", "0deg"); el.style.setProperty("--rx", "0deg"); el.style.setProperty("--mx", "0px"); };
   return (
     <section id="program-studi" className="prodi" data-tone="light">
       <div className="wrap">
@@ -46,16 +55,17 @@ export default function Prodi({ onRegister, onOpenCurriculum }) {
           <Reveal delay={150}><p className="lead">Dua program studi untuk membangun ilmu, kompetensi, dan pengalaman yang relevan dengan kebutuhan Anda.</p></Reveal>
         </header>
 
-        <div ref={ref} className={`fork${seen ? " is-in" : ""}`}>
+        <div ref={ref} className="fork">
           <span className="fork__stem" aria-hidden="true" />
           <span className="fork__bar" aria-hidden="true" />
           <div className="fork__cards">
             {programs.map((p, i) => {
               const dark = p.id === "pgmi";
               return (
-                <article key={p.id} className={`pcard${dark ? " pcard--dark" : ""}`} style={{ "--i": i }}>
+                <article key={p.id} className={`pcard${dark ? " pcard--dark" : ""}`} style={{ "--i": i }} onPointerMove={tilt} onPointerLeave={untilt}>
                   <span className="pcard__drop" aria-hidden="true" />
-                  <div className="pcard__arch">{dark ? <EmblemPgmi /> : <EmblemPai />}{p.badge ? <span className="pcard__badge">{p.badge}</span> : null}</div>
+                  {p.badge ? <span className="pcard__badge">{p.badge}</span> : null}
+                  <div className="pcard__arch"><div className="pcard__art">{dark ? <EmblemPgmi /> : <EmblemPai />}</div></div>
                   <div className="pcard__body">
                     <p className="pcard__short">{p.shortName}</p>
                     <h3>{p.name}</h3>
